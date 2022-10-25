@@ -1,10 +1,9 @@
 EAPI=8
-inherit rpm
 
 MY_PN="mullvad-bin"  
 DESCRIPTION="Mullvad is a VPN service that helps keep your online activity, identity, and location private."
 HOMEPAGE="https://mullvad.net"
-SRC_URI="https://mullvad.net/download/app/rpm/latest -> mullvad_latest-bin.rpm"
+SRC_URI="https://mullvad.net/download/app/rpm/latest"
 LICENSE="GPL-3"
 
 SLOT="0"
@@ -13,81 +12,49 @@ IUSE=""
 DEPEND=""
 RDEPEND="${DEPEND}"
 S="${WORKDIR}"
+PROPERTIES+=" live"
 
 src_unpack() {
-    rpm_src_unpack ${A}
+
+    curl -L "https://mullvad.net/download/app/rpm/latest" \
+        -o  ${S}/mullvad_latest-bin.rpm || die "Could not fetch mullvad rpm package."
+
+    rpm2tar ${S}/mullvad_latest-bin.rpm || die "Could not convert rpm to tar archive."
+
+    tar -xvf ${S}/mullvad_latest-bin.tar || die "Could not extract tar archive."
+
 }
 
-pkg_preinst() {
-	mkdir "${S}/init_scripts"
+src_install() {
+
+    cp -r ${S}/opt / || die "Failed to copy data files."
+    cp -r ${S}/usr/bin /usr || die "Failed to copy binaries."
+    cp -r ${S}/usr/share /usr || die "Failed to copy shareable files."
+
+}
+
+pkg_postinst() {
 
     init_sys="$(ps -p 1 -o comm=)"
 
     case $init_sys in
         init)
-            echo "Preparing files for openrc."
-
-            echo -e '\
-#!/sbin/openrc-run
-
-description="Mullvad VPN Service"
-depend() {
-    need net
-}
-
-supervisor="supervise-daemon"
-command="/opt/Mullvad\ VPN/resources/mullvad-daemon"
-command_args="${MULLVPN_OPTS}"
-pidfile="/run/${RC_SVCNAME}.pid"
-command_background=true' > ${S}/init_scripts/mullvadd
+            echo "Installing files for openrc."
+            cp ${FILESDIR}/mullvadd-openrc /etc/init.d/mullvadd
+            rc-update add mullvadd default
+            rc-service mullvadd start 
             ;;
 
         systemd)
-            echo "Preparing files for systemd."
-
-            echo -e '\
-# Systemd service unit file for the Mullvad VPN daemon
-# testing if new changes are added
-
-[Unit]
-Description=Mullvad VPN daemon
-Before=network-online.target
-After=mullvad-early-boot-blocking.service NetworkManager.service systemd-resolved.service
-
-StartLimitBurst=5
-StartLimitIntervalSec=20
-RequiresMountsFor=/opt/Mullvad\x20VPN/resources/
-
-[Service]
-Restart=always
-RestartSec=1
-ExecStart=/usr/bin/mullvad-daemon -v --disable-stdout-timestamps
-Environment="MULLVAD_RESOURCE_DIR=/opt/Mullvad VPN/resources/"
-
-[Install]
-WantedBy=multi-user.target' > ${S}/init_scripts/mullvad-daemon.service
+            echo "Installing files for systemd."
+            cp ${FILESDIR}/mullvadd-systemd /usr/lib/systemd/system/mullvad-daemon.service
+            systemctl enable mullvad-daemon
+            systemctl start mullvad-daemon
             ;;
-        
+ 
         *)
-            echo "Can't recoginize init system."
+            echo -e "Can't recognize init system, available init files are in ${FILESDIR}"
             exit 1
             ;;
     esac
 }
-  
-src_install() {
-    echo -e "\n\
-    #----------------------------\n \
-    This block is src_install()\n \
-    #----------------------------\n \
-    "
-
-    insinto /opt
-    cp -vR "${S}/opt" "${D}/opt" || die "Failed to install data files."
-    cp -vR "${S}/usr/bin" "${D}/usr/bin" || die "Failed to install binaries."
-    cp -vR "${S}/usr/share" "${D}/usr/share" || die "Failed to install shareable files."
-
-}
-
-
-
