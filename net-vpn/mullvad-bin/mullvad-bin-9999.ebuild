@@ -1,9 +1,11 @@
 EAPI=8
 
+inherit rpm
+
 MY_PN="mullvad-bin"  
 DESCRIPTION="Mullvad is a VPN service that helps keep your online activity, identity, and location private."
 HOMEPAGE="https://mullvad.net"
-SRC_URI="https://mullvad.net/download/app/rpm/latest"
+SRC_URI="https://mullvad.net/download/app/rpm/latest -> mullvad_latest-bin.rpm"
 LICENSE="GPL-3"
 
 SLOT="0"
@@ -13,27 +15,17 @@ DEPEND=""
 RDEPEND="${DEPEND}"
 S="${WORKDIR}"
 PROPERTIES+=" live"
+FEATURES="-sandbox"
 
 src_unpack() {
-
-    curl -L "https://mullvad.net/download/app/rpm/latest" \
-        -o  ${S}/mullvad_latest-bin.rpm || die "Could not fetch mullvad rpm package."
-
-    rpm2tar ${S}/mullvad_latest-bin.rpm || die "Could not convert rpm to tar archive."
-
-    tar -xvf ${S}/mullvad_latest-bin.tar || die "Could not extract tar archive."
-
-}
-
-src_install() {
-
-    cp -r ${S}/opt / || die "Failed to copy data files."
-    cp -r ${S}/usr/bin /usr || die "Failed to copy binaries."
-    cp -r ${S}/usr/share /usr || die "Failed to copy shareable files."
-
+    rpm_src_unpack ${A}
 }
 
 pkg_postinst() {
+    
+    cp -r ${S}/opt / || die "Failed to copy data files."
+    cp -vr ${S}/usr/bin /usr || die "Failed to copy binaries."
+    cp -vr ${S}/usr/share /usr || die "Failed to copy shareable files."
 
     init_sys="$(ps -p 1 -o comm=)"
 
