@@ -9,7 +9,7 @@ LICENSE="GPL-3"
 
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE=""
+IUSE="systemd"
 DEPEND=""
 RDEPEND="${DEPEND}"
 S="${WORKDIR}"
@@ -21,20 +21,16 @@ src_unpack() {
 
 pkg_preinst() {
     INIT_SYS="$(ps -p 1 -o comm=)"
-    case $INIT_SYS in
-        init)
-            rm -r ${S}/usr/lib #systemd files by mullvad
-            doinitd ${FILESDIR}/mullvadd
-            doinitd ${FILESDIR}/mullvadd-early-boot-blocking
-            ;;
+    [[ ! $INIT_SYS =~ ^(init|systemd)$ ]] && die "Couldn't find a supported init system"
 
-        systemd)
-            ;;
-
-        *)
-            die "Couldn't recognize init system."
-            ;;
-    esac
+    if use systemd
+    then
+        true        
+    else
+        rm -r ${S}/usr/lib #systemd files by mullvad
+        doinitd ${FILESDIR}/mullvadd
+        doinitd ${FILESDIR}/mullvadd-early-boot-blocking
+    fi   
 }
 
 src_install() {
