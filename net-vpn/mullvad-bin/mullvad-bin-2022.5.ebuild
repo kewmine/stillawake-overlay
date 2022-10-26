@@ -9,7 +9,7 @@ LICENSE="GPL-3"
 
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="systemd"
+IUSE=""
 DEPEND=""
 RDEPEND="${DEPEND}"
 S="${WORKDIR}"
@@ -20,17 +20,8 @@ src_unpack() {
 }
 
 pkg_preinst() {
-    INIT_SYS="$(ps -p 1 -o comm=)"
-    [[ ! $INIT_SYS =~ ^(init|systemd)$ ]] && die "Couldn't find a supported init system"
-
-    if use systemd
-    then
-        true        
-    else
-        rm -r ${S}/usr/lib #systemd files by mullvad
-        doinitd ${FILESDIR}/mullvadd
-        doinitd ${FILESDIR}/mullvadd-early-boot-blocking
-    fi   
+    doinitd ${FILESDIR}/mullvadd
+    doinitd ${FILESDIR}/mullvadd-early-boot-blocking   
 }
 
 src_install() {
@@ -38,7 +29,9 @@ src_install() {
 }
 
 pkg_postinst() {
-	case $INIT_SYS in
+    INIT_SYS="$(ps -p 1 -o comm=)"
+	
+    case $INIT_SYS in
         init)
             rc-service mullvadd start
             rc-update add mullvadd default
@@ -49,6 +42,10 @@ pkg_postinst() {
             systemctl start mullvad-daemon
             systemctl enable mullvad-daemon
             echo "added mullvad-daemon to runlevel default"
+            ;;
+        
+        *)
+            "Couldn't find a supported init system"
             ;;
     esac
 
