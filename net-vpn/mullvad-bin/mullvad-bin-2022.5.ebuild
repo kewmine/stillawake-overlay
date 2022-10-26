@@ -21,7 +21,6 @@ src_unpack() {
 
 pkg_preinst() {
     INIT_SYS="$(ps -p 1 -o comm=)"
-    
     case $INIT_SYS in
         init)
             rm -r ${S}/usr/lib #systemd files by mullvad
