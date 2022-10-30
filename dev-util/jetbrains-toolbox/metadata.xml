@@ -3,9 +3,6 @@
 <pkgmetadata>
   <maintainer type="person">
     <email>jek1@hexity.org</email>
-    <name>jek1</name>
+    <name>Dikshant Chandel</name>
   </maintainer>
-  <longdescription lang="en">
-    An app to manage JetBrains IDEs with ease.
-  </longdescription>
 </pkgmetadata>
